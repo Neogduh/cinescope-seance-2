@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import posterAube from "./assets/aube.svg";
 import posterMemoire from "./assets/memoire.svg";
 import posterOrbite from "./assets/orbite.svg";
@@ -14,12 +14,46 @@ export default function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const selectedFilm = films.find((film) => film.title === selected);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const confirmationRef = useRef<HTMLParagraphElement>(null);
+  const confirmedRef = useRef(false);
   const filteredFilms = useMemo(
     () => films.filter((film) => film.title.toLowerCase().includes(query.toLowerCase())),
     [query],
   );
   const toggleFavorite = (id: number) => {
     setFavorites((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
+  };
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (selected && dialog && !dialog.open) {
+      dialog.showModal();
+      dialogTitleRef.current?.focus();
+    }
+  }, [selected]);
+  const openBooking = (title: string, trigger: HTMLButtonElement) => {
+    triggerRef.current = trigger;
+    confirmedRef.current = false;
+    setConfirmation(null);
+    setSelected(title);
+  };
+  const handleConfirm = () => {
+    if (!selectedFilm) return;
+    confirmedRef.current = true;
+    setConfirmation(`Votre réservation pour « ${selectedFilm.title} » (${selectedFilm.time}) est confirmée.`);
+    dialogRef.current?.close();
+  };
+  const handleClose = () => {
+    setSelected(null);
+    if (confirmedRef.current) {
+      confirmedRef.current = false;
+      confirmationRef.current?.focus();
+    } else {
+      triggerRef.current?.focus();
+    }
   };
 
   return (
@@ -36,6 +70,11 @@ export default function App() {
       <main className="page">
         <h1>Films à l’affiche</h1>
         <p className="intro">Découvrez la programmation de cette semaine.</p>
+        {confirmation && (
+          <p className="confirmation" ref={confirmationRef} tabIndex={-1}>
+            {confirmation}
+          </p>
+        )}
         <div className="search-field">
           <label htmlFor="film-search">Rechercher un film</label>
           <input id="film-search" className="search" type="search" value={query}
@@ -56,7 +95,13 @@ export default function App() {
                     <h3>{film.title}</h3>
                     <p>{film.genre} · {film.time}</p>
                     <div className="actions">
-                      <div className="booking-trigger fake-button" onClick={() => setSelected(film.title)}>Réserver {film.title}</div>
+                      <button
+                        type="button"
+                        className="booking-trigger fake-button"
+                        onClick={(event) => openBooking(film.title, event.currentTarget)}
+                      >
+                        Réserver {film.title}
+                      </button>
                       <button type="button" className="favorite" aria-pressed={isFavorite}
                         aria-label={"Favori : " + film.title} onClick={() => toggleFavorite(film.id)}>
                         <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span>
@@ -73,22 +118,50 @@ export default function App() {
           <h2 id="infos-title">Informations pratiques</h2>
           <p>Le cinéma ouvre trente minutes avant la première séance.</p>
         </section>
-        {selectedFilm && (
-          <div className="backdrop">
-            <div className="modal">
+
+        <dialog
+          ref={dialogRef}
+          className="modal"
+          aria-labelledby="booking-title"
+          onClose={handleClose}
+        >
+          {selectedFilm && (
+            <>
               <div className="dialog-heading">
-                <h2>Réserver {selected}</h2>
-                <span className="close" onClick={() => setSelected(null)}>×</span>
+                <h2 id="booking-title" ref={dialogTitleRef} tabIndex={-1}>
+                  Réserver {selectedFilm.title}
+                </h2>
+                <button
+                  type="button"
+                  className="close"
+                  aria-label="Fermer"
+                  onClick={() => dialogRef.current?.close()}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
               </div>
               <p>{selectedFilm.genre} · Séance de {selectedFilm.time}</p>
               <p className={"availability " + (selectedFilm.available ? "available" : "unavailable")}>
                 {selectedFilm.available ? "Places disponibles" : "Séance complète"}
               </p>
               <p>Consultez la séance et sa disponibilité avant de revenir au programme.</p>
-              <button className="dialog-action" type="button" onClick={() => setSelected(null)}>Revenir aux films</button>
-            </div>
-          </div>
-        )}
+              <button
+                className="dialog-action"
+                type="button"
+                onClick={handleConfirm}
+              >
+                Confirmer la réservation
+              </button>
+              <button
+                className="dialog-action"
+                type="button"
+                onClick={() => dialogRef.current?.close()}
+              >
+                Revenir aux films
+              </button>
+            </>
+          )}
+        </dialog>
       </main>
     </>
   );

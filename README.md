@@ -21,10 +21,20 @@ Les points corrigés sont les suivants :
 - le contenu derrière la fenêtre ne doit pas participer au parcours pendant son ouverture.
 
 ### Corrections apportées
-- Les `div` structurants ont été remplacés par des éléments HTML natifs (`header`, `nav`, `main`, `section`, `article` et `button`) afin que les technologies d'assistance puissent identifier la structure et le rôle de chaque élément.
-- Les boutons de favoris disposent maintenant d'un nom accessible, d'un état `aria-pressed` et d'une infobulle.
-- Les mentions « Places disponibles » et « Places indisponibles » accompagnent désormais l'indicateur coloré.
-- Les contrôles disposent de libellés explicites et les affiches ont un texte alternatif.
-- Un indicateur de focus visible a été ajouté pour la navigation au clavier.
-- La sélection d'un film est maintenant possible avec la touche `Tab`, puis `Entrée` ou `Espace`.
-TODO
+#### Fenêtre de réservation
+- Remplacement du faux `div` modal par un vrai élément `<dialog>` ouvert avec `showModal()`.
+- Ajout de `aria-labelledby` sur la dialog, relié au titre `h2` (`#booking-title`).
+- Au moment de l'ouverture, le focus est placé sur le titre de la dialog (`tabIndex={-1}` + `.focus()`).
+- Fonction `handleClose` branchée sur `onClose` qui réinitialise l'état et rend le focus au bouton « Réserver » qui avait ouvert la dialog (mémorisé avec `useRef`).
+- Fermeture possible au clavier avec la touche Échap, gérée nativement par `<dialog>`.
+- Ouverture pilotée par un `useEffect` sur l'état `selected`.
+
+#### Boutons
+- Le `div` « Réserver » est remplacé par un vrai `<button type="button">`, focusable et activable au clavier (Entrée / Espace).
+- La croix de fermeture est remplacée par un `<button type="button">` avec `aria-label="Fermer"` (le `×` est masqué aux lecteurs d'écran avec `aria-hidden`).
+- Les boutons « Fermer » et « Revenir aux films » ferment la dialog via `dialogRef.current?.close()`.
+
+#### Confirmation de réservation
+- Ajout d'un bouton « Confirmer la réservation » dans la dialog.
+- À la confirmation, un message de réservation s'affiche et reçoit le focus (`tabIndex={-1}` + `.focus()`) à la fermeture de la dialog.
+- À la fermeture simple (croix, « Revenir aux films », Échap), le focus revient sur le bouton « Réserver » d'origine.
